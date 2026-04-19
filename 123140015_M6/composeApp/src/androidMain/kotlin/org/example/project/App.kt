@@ -1,376 +1,416 @@
 package org.example.project
 
-import android.graphics.BitmapFactory
-import androidx.compose.animation.*
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.navigation.NavHostController
-import androidx.navigation.NavType
-import androidx.navigation.compose.*
-import androidx.navigation.navArgument
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-data class Note(val id: Int, val title: String, val content: String, val isFavorite: Boolean = false)
-data class HistoryItem(val title: String, val route: String, val timestamp: Long = System.currentTimeMillis())
+import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.viewmodel.compose.viewModel
+import org.example.project.notes.NoteItem
+import org.example.project.notes.NotesUiState
+import org.example.project.notes.NotesViewModel
+import org.example.project.notes.NotesViewModelFactory
+import org.example.project.notes.SortOrder
 
-sealed class Screen(val route: String, val title: String) {
-    object Notes : Screen("notes", "Notes")
-    object Favorites : Screen("favorites", "Favorite")
-    object Profile : Screen("profile", "My Profile")
-    object AddNote : Screen("add_note", "Add Notes")
-    object NoteDetail : Screen("note_detail/{noteId}", "Notes") {
-        fun createRoute(noteId: Int) = "note_detail/$noteId"
-    }
+private enum class M7Screen {
+    NOTES,
+    SETTINGS
 }
-// Danar Prayogo 123140015
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 fun App() {
-    val viewModel = remember { ProfileViewModel() }
-    val uiState by viewModel.uiState.collectAsState()
-    val navController = rememberNavController()
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
-    // histori
-    LaunchedEffect(navController) {
-        navController.currentBackStackEntryFlow.collect { backStackEntry ->
-            val route = backStackEntry.destination.route
-            if (route != null) {
-                val title = when {
-                    route == Screen.Notes.route -> Screen.Notes.title
-                    route == Screen.Favorites.route -> Screen.Favorites.title
-                    route == Screen.Profile.route -> Screen.Profile.title
-                    route == Screen.AddNote.route -> Screen.AddNote.title
-                    route.startsWith("note_detail") -> Screen.NoteDetail.title
-                    else -> "Unknown"
-                }
-                viewModel.addHistory(title, route)
-            }
-        }
-    }
-
-    val colors = if (uiState.isDarkMode) darkColorScheme() else lightColorScheme(
-        primary = Color(0xFF1E88E5),
-        surfaceVariant = Color(0xFFF5F5F5)
-    )
-
-    MaterialTheme(colorScheme = colors) {
-        ModalNavigationDrawer(
-            drawerState = drawerState,
-            drawerContent = {
-                ModalDrawerSheet {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text("Riwayat Navigasi", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleLarge)
-                    HorizontalDivider()
-
-                    LazyColumn(modifier = Modifier.fillMaxHeight().padding(8.dp)) {
-                        items(uiState.history.reversed()) { item ->
-                            NavigationDrawerItem(
-                                label = { Text(item.title) },
-                                selected = false,
-                                onClick = {
-                                    scope.launch {
-                                        drawerState.close()
-                                        navController.navigate(item.route) {
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    }
-                                },
-                                icon = { Icon(Icons.Default.History, null) },
-                                modifier = Modifier.padding(vertical = 4.dp)
-                            )
-                        }
-                    }
-                }
-            }
-        ) {
-            Scaffold(
-                topBar = {
-                    CenterAlignedTopAppBar(
-                        title = { Text("Danar") },
-                        navigationIcon = {
-                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                Icon(Icons.Default.Menu, contentDescription = null)
-                            }
-                        }
-                    )
-                },
-                bottomBar = {
-                    NavigationBar {
-                        val navBackStackEntry by navController.currentBackStackEntryAsState()
-                        val currentRoute = navBackStackEntry?.destination?.route
-
-                        listOf(
-                            Triple("Notes", Screen.Notes.route, Icons.Default.Description),
-                            Triple("Favorites", Screen.Favorites.route, Icons.Default.Favorite),
-                            Triple("Profile", Screen.Profile.route, Icons.Default.Person)
-                        ).forEach { (label, route, icon) ->
-                            NavigationBarItem(
-                                selected = currentRoute == route,
-                                onClick = {
-                                    navController.navigate(route) {
-                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
-                                label = { Text(label) },
-                                icon = { Icon(icon, null) }
-                            )
-                        }
-                    }
-                },
-                floatingActionButton = {
-                    val navBackStackEntry by navController.currentBackStackEntryAsState()
-                    if (navBackStackEntry?.destination?.route == Screen.Notes.route) {
-                        FloatingActionButton(onClick = { navController.navigate(Screen.AddNote.route) }) {
-                            Icon(Icons.Default.Add, contentDescription = null)
-                        }
-                    }
-                }
-            ) { innerPadding ->
-                NavHost(
-                    navController = navController,
-                    startDestination = Screen.Notes.route,
-                    modifier = Modifier.padding(innerPadding)
-                ) {
-                    composable(Screen.Notes.route) { NotesScreen(navController, viewModel, uiState) }
-                    composable(Screen.Favorites.route) { FavoritesScreen(navController, viewModel, uiState) }
-                    composable(Screen.Profile.route) { ProfileScreen(viewModel, uiState) }
-                    composable(Screen.AddNote.route) { AddNoteScreen(navController, viewModel) }
-                    composable(
-                        route = Screen.NoteDetail.route,
-                        arguments = listOf(navArgument("noteId") { type = NavType.IntType })
-                    ) { backStackEntry ->
-                        val noteId = backStackEntry.arguments?.getInt("noteId") ?: 0
-                        NoteDetailScreen(navController, viewModel, noteId)
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-@Composable
-fun NotesScreen(navController: NavHostController, viewModel: ProfileViewModel, uiState: ProfileUiState) {
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Daftar Catatan", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(16.dp))
-        if (uiState.notes.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Belum ada catatan.")
-            }
-        } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(uiState.notes) { note ->
-                    NoteItem(note, onNoteClick = { navController.navigate(Screen.NoteDetail.createRoute(note.id)) },
-                        onFavClick = { viewModel.toggleFavorite(note.id) })
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun FavoritesScreen(navController: NavHostController, viewModel: ProfileViewModel, uiState: ProfileUiState) {
-    val favNotes = uiState.notes.filter { it.isFavorite }
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Catatan Favorit", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(16.dp))
-        if (favNotes.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Belum ada favorit.") }
-        } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(favNotes) { note ->
-                    NoteItem(note, onNoteClick = { navController.navigate(Screen.NoteDetail.createRoute(note.id)) },
-                        onFavClick = { viewModel.toggleFavorite(note.id) })
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun NoteItem(note: Note, onNoteClick: () -> Unit, onFavClick: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth().clickable { onNoteClick() },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(note.title, fontWeight = FontWeight.Bold)
-                Text(note.content, maxLines = 1, color = Color.Gray)
-            }
-            IconButton(onClick = onFavClick) {
-                Icon(if (note.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, null,
-                    tint = if (note.isFavorite) Color.Red else Color.Gray)
-            }
-        }
-    }
-}
-
-@Composable
-fun AddNoteScreen(navController: NavHostController, viewModel: ProfileViewModel) {
-    var t by remember { mutableStateOf("") }
-    var c by remember { mutableStateOf("") }
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.Default.ArrowBack, null) }
-        Text("Tambah Catatan", style = MaterialTheme.typography.titleLarge)
-        Spacer(Modifier.height(16.dp))
-        OutlinedTextField(value = t, onValueChange = { t = it }, label = { Text("Judul") }, modifier = Modifier.fillMaxWidth())
-        Spacer(Modifier.height(8.dp))
-        OutlinedTextField(value = c, onValueChange = { c = it }, label = { Text("Konten") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
-        Spacer(Modifier.height(16.dp))
-        Button(onClick = { if (t.isNotBlank()) { viewModel.addNote(t, c); navController.popBackStack() } }, modifier = Modifier.fillMaxWidth()) {
-            Text("Simpan")
-        }
-    }
-}
-
-@Composable
-fun NoteDetailScreen(navController: NavHostController, viewModel: ProfileViewModel, noteId: Int) {
-    val uiState by viewModel.uiState.collectAsState()
-    val note = uiState.notes.find { it.id == noteId }
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.Default.ArrowBack, null) }
-        if (note != null) {
-            Text(note.title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(8.dp))
-            Text(note.content)
-        }
-    }
-}
-
-@Composable
-fun ProfileScreen(viewModel: ProfileViewModel, uiState: ProfileUiState) {
-    val uri = LocalUriHandler.current
-    Column(modifier = Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(Modifier.fillMaxWidth(), Arrangement.End, Alignment.CenterVertically) {
-            Icon(Icons.Default.Brightness4, null, Modifier.size(20.dp))
-            Switch(checked = uiState.isDarkMode, onCheckedChange = { viewModel.toggleDarkMode(it) })
-        }
-        ProfileHeader(uiState.name, uiState.nim, uiState.bio)
-        Spacer(Modifier.height(16.dp))
-        AnimatedVisibility(uiState.isEditMode) {
-            Column {
-                OutlinedTextField(uiState.name, { viewModel.updateName(it) }, label = { Text("Nama") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(uiState.bio, { viewModel.updateBio(it) }, label = { Text("Bio") }, modifier = Modifier.fillMaxWidth())
-            }
-        }
-        ProfileCard {
-            Column(Modifier.padding(16.dp)) {
-                InfoItem(Icons.Default.Email, "Email", uiState.email)
-                InfoItem(Icons.Default.Phone, "Phone", uiState.phone)
-                InfoItem(Icons.Default.LocationOn, "Location", uiState.location)
-            }
-        }
-        Spacer(Modifier.height(16.dp))
-        Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { viewModel.toggleEditMode() }, Modifier.weight(1f)) {
-                Icon(if (uiState.isEditMode) Icons.Default.Check else Icons.Default.Edit, null)
-                Text(if (uiState.isEditMode) " Save" else " Edit")
-            }
-            OutlinedButton(onClick = { uri.openUri("https://github.com/IcniP") }, Modifier.weight(1f)) { Text("Github") }
-        }
-    }
-}
-
-@Composable
-fun ProfileHeader(name: String, nim: String, bio: String) {
     val context = LocalContext.current
-    val bitmap = remember(context) {
-        try { context.assets.open("foto_profil.jpg").use { BitmapFactory.decodeStream(it).asImageBitmap() } } catch (e: Exception) { null }
+    val viewModel: NotesViewModel = viewModel(
+        factory = remember(context) { NotesViewModelFactory(context.applicationContext) }
+    )
+    val uiState by viewModel.uiState.collectAsState()
+
+    val colorScheme = if (uiState.darkMode) {
+        darkColorScheme()
+    } else {
+        lightColorScheme(
+            primary = Color(0xFF1565C0),
+            secondary = Color(0xFF00897B),
+            surfaceVariant = Color(0xFFEAF2FB)
+        )
     }
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.size(100.dp).clip(CircleShape).border(2.dp, MaterialTheme.colorScheme.primary, CircleShape), Alignment.Center) {
-            if (bitmap != null) Image(bitmap, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            else Icon(Icons.Default.Person, null, Modifier.size(50.dp), tint = Color.LightGray)
+
+    MaterialTheme(colorScheme = colorScheme) {
+        M7NotesApp(uiState = uiState, viewModel = viewModel)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun M7NotesApp(uiState: NotesUiState, viewModel: NotesViewModel) {
+    var screen by rememberSaveable { mutableStateOf(M7Screen.NOTES) }
+    var editingNote by remember { mutableStateOf<NoteItem?>(null) }
+    var showEditor by rememberSaveable { mutableStateOf(false) }
+    val snackbars = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.errorMessage) {
+        val message = uiState.errorMessage
+        if (!message.isNullOrBlank()) {
+            snackbars.showSnackbar(message)
+            viewModel.clearError()
         }
-        Text(name, fontWeight = FontWeight.Bold)
-        Text(nim, color = Color.Gray)
-        Text(bio, textAlign = TextAlign.Center)
-    }
-}
-
-@Composable
-fun ProfileCard(c: @Composable () -> Unit) { Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { c() } }
-
-@Composable
-fun InfoItem(i: ImageVector, l: String, v: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.End,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(i, null, Modifier.size(20.dp), MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.width(12.dp))
-        Column { Text(l, style = MaterialTheme.typography.labelSmall); Text(v) }
-    }
-}
-
-data class ProfileUiState(
-    val name: String = "Danar Prayogo",
-    val nim: String = "123140015",
-    val bio: String = "fishing.",
-    val email: String = "danar.123140015@student.itera.ac.id",
-    val phone: String = "089624428",
-    val location: String = "Bandar Lampung",
-    val isDarkMode: Boolean = false,
-    val isEditMode: Boolean = false,
-    val notes: List<Note> = emptyList(),
-    val history: List<HistoryItem> = emptyList()
-)
-
-class ProfileViewModel : ViewModel() {
-    private val _uiState = MutableStateFlow(ProfileUiState())
-    val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
-
-    fun updateName(n: String) { _uiState.update { it.copy(name = n) } }
-    fun updateBio(b: String) { _uiState.update { it.copy(bio = b) } }
-    fun toggleDarkMode(v: Boolean) { _uiState.update { it.copy(isDarkMode = v) } }
-    fun toggleEditMode() { _uiState.update { it.copy(isEditMode = !_uiState.value.isEditMode) } }
-    fun addNote(t: String, c: String) {
-        val n = Note((_uiState.value.notes.maxOfOrNull { it.id } ?: 0) + 1, t, c)
-        _uiState.update { it.copy(notes = it.notes + n) }
-    }
-    fun toggleFavorite(id: Int) {
-        _uiState.update { s -> s.copy(notes = s.notes.map { if (it.id == id) it.copy(isFavorite = !it.isFavorite) else it }) }
     }
 
-    fun addHistory(title: String, route: String) {
-        _uiState.update { s ->
-            val newList = s.history.toMutableList()
-            if (newList.lastOrNull()?.route != route) {
-                newList.add(HistoryItem(title, route))
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(if (screen == M7Screen.NOTES) "Notes App M7" else "Settings")
+                }
+            )
+        },
+        snackbarHost = { SnackbarHost(snackbars) },
+        floatingActionButton = {
+            if (screen == M7Screen.NOTES) {
+                FloatingActionButton(onClick = {
+                    editingNote = null
+                    showEditor = true
+                }) {
+                    Icon(Icons.Default.Add, contentDescription = "Tambah catatan")
+                }
             }
-            if (newList.size > 10) newList.removeAt(0)
-            s.copy(history = newList)
+        },
+        bottomBar = {
+            NavigationBar {
+                NavigationBarItem(
+                    selected = screen == M7Screen.NOTES,
+                    onClick = { screen = M7Screen.NOTES },
+                    icon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    label = { Text("Notes") }
+                )
+                NavigationBarItem(
+                    selected = screen == M7Screen.SETTINGS,
+                    onClick = { screen = M7Screen.SETTINGS },
+                    icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                    label = { Text("Settings") }
+                )
+            }
+        }
+    ) { innerPadding ->
+        when (screen) {
+            M7Screen.NOTES -> NotesContent(
+                uiState = uiState,
+                onSearchChange = viewModel::onSearchChange,
+                onEdit = { note ->
+                    editingNote = note
+                    showEditor = true
+                },
+                onToggleFavorite = viewModel::toggleFavorite,
+                onDelete = viewModel::deleteNote,
+                onRefresh = viewModel::refreshNotes,
+                modifier = Modifier.padding(innerPadding)
+            )
+
+            M7Screen.SETTINGS -> SettingsContent(
+                darkMode = uiState.darkMode,
+                sortOrder = uiState.sortOrder,
+                onDarkModeChange = viewModel::setDarkMode,
+                onSortOrderChange = viewModel::setSortOrder,
+                modifier = Modifier.padding(innerPadding)
+            )
         }
     }
+
+    if (showEditor) {
+        NoteEditorDialog(
+            initialNote = editingNote,
+            onDismiss = { showEditor = false },
+            onSave = { title, content ->
+                if (editingNote == null) {
+                    viewModel.addNote(title, content) { showEditor = false }
+                } else {
+                    viewModel.updateNote(editingNote!!.id, title, content) { showEditor = false }
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun NotesContent(
+    uiState: NotesUiState,
+    onSearchChange: (String) -> Unit,
+    onEdit: (NoteItem) -> Unit,
+    onToggleFavorite: (Long) -> Unit,
+    onDelete: (Long) -> Unit,
+    onRefresh: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var pendingDeleteId by remember { mutableStateOf<Long?>(null) }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        OutlinedTextField(
+            value = uiState.searchQuery,
+            onValueChange = onSearchChange,
+            label = { Text("Cari catatan") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            trailingIcon = { Icon(Icons.Default.Search, contentDescription = null) }
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        Button(onClick = onRefresh, modifier = Modifier.fillMaxWidth()) {
+            Text("Muat Ulang")
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        when {
+            uiState.isLoading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+
+            uiState.notes.isEmpty() -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Belum ada catatan. Tekan tombol + untuk menambah.")
+                }
+            }
+
+            else -> {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    items(uiState.notes, key = { it.id }) { note ->
+                        NoteCard(
+                            note = note,
+                            onEdit = { onEdit(note) },
+                            onToggleFavorite = { onToggleFavorite(note.id) },
+                            onDelete = { pendingDeleteId = note.id }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (pendingDeleteId != null) {
+        AlertDialog(
+            onDismissRequest = { pendingDeleteId = null },
+            title = { Text("Hapus Catatan") },
+            text = { Text("Catatan akan dihapus permanen dari database lokal.") },
+            confirmButton = {
+                Button(onClick = {
+                    onDelete(pendingDeleteId!!)
+                    pendingDeleteId = null
+                }) {
+                    Text("Hapus")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { pendingDeleteId = null }) {
+                    Text("Batal")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun NoteCard(
+    note: NoteItem,
+    onEdit: () -> Unit,
+    onToggleFavorite: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = note.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = onToggleFavorite) {
+                    Icon(
+                        imageVector = if (note.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = null,
+                        tint = if (note.isFavorite) Color.Red else MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            Text(
+                text = note.content,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = onEdit) {
+                    Icon(Icons.Default.Edit, contentDescription = null)
+                    Text(" Edit")
+                }
+                Button(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = null)
+                    Text(" Hapus")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsContent(
+    darkMode: Boolean,
+    sortOrder: SortOrder,
+    onDarkModeChange: (Boolean) -> Unit,
+    onSortOrderChange: (SortOrder) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.DarkMode, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Mode Gelap")
+            }
+            Switch(checked = darkMode, onCheckedChange = onDarkModeChange)
+        }
+
+        Text("Urutan Catatan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+
+        SortOrder.entries.forEach { option ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RadioButton(selected = sortOrder == option, onClick = { onSortOrderChange(option) })
+                Text(text = option.label())
+            }
+        }
+    }
+}
+
+@Composable
+private fun NoteEditorDialog(
+    initialNote: NoteItem?,
+    onDismiss: () -> Unit,
+    onSave: (String, String) -> Unit
+) {
+    var title by remember(initialNote) { mutableStateOf(initialNote?.title.orEmpty()) }
+    var content by remember(initialNote) { mutableStateOf(initialNote?.content.orEmpty()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (initialNote == null) "Tambah Catatan" else "Edit Catatan") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Judul") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = content,
+                    onValueChange = { content = it },
+                    label = { Text("Konten") },
+                    minLines = 3,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(title, content) },
+                enabled = title.isNotBlank() && content.isNotBlank()
+            ) {
+                Text("Simpan")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                Text("Batal")
+            }
+        }
+    )
+}
+
+private fun SortOrder.label(): String = when (this) {
+    SortOrder.NEWEST -> "Terbaru"
+    SortOrder.OLDEST -> "Terlama"
+    SortOrder.TITLE_AZ -> "Judul A-Z"
+    SortOrder.TITLE_ZA -> "Judul Z-A"
 }
