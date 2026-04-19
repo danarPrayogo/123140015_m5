@@ -90,6 +90,5 @@ Catatan untuk terminal Windows:
 - [x] UI state loading/empty/content
 
 ## Bukti Demo
-Silakan tambahkan:
-- Screenshot semua screen utama
-- Link video demo 45 detik (CRUD, search, settings, offline mode)
+https://drive.google.com/file/d/1x2wwM1fnsQGFkTw8ZgwEK_CNWiXlPxJa/view?usp=drivesdk
+<img width="588" height="414" alt="image" src="https://github.com/user-attachments/assets/397a7116-6e64-41a7-9ffd-d94efc1c423a" />
