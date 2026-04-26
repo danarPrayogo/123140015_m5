@@ -14,13 +14,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -45,6 +50,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,17 +59,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.collectAsState
-import androidx.lifecycle.viewmodel.compose.viewModel
+import org.example.project.device.DeviceInfo
+import org.example.project.network.NetworkMonitor
 import org.example.project.notes.NoteItem
 import org.example.project.notes.NotesUiState
 import org.example.project.notes.NotesViewModel
-import org.example.project.notes.NotesViewModelFactory
 import org.example.project.notes.SortOrder
+import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
 private enum class M7Screen {
     NOTES,
@@ -72,10 +78,7 @@ private enum class M7Screen {
 
 @Composable
 fun App() {
-    val context = LocalContext.current
-    val viewModel: NotesViewModel = viewModel(
-        factory = remember(context) { NotesViewModelFactory(context.applicationContext) }
-    )
+    val viewModel: NotesViewModel = koinViewModel()
     val uiState by viewModel.uiState.collectAsState()
 
     val colorScheme = if (uiState.darkMode) {
@@ -96,6 +99,9 @@ fun App() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun M7NotesApp(uiState: NotesUiState, viewModel: NotesViewModel) {
+    val networkMonitor: NetworkMonitor = koinInject()
+    val isNetworkAvailable by networkMonitor.isNetworkAvailable.collectAsState()
+
     var screen by rememberSaveable { mutableStateOf(M7Screen.NOTES) }
     var editingNote by remember { mutableStateOf<NoteItem?>(null) }
     var showEditor by rememberSaveable { mutableStateOf(false) }
@@ -111,11 +117,43 @@ private fun M7NotesApp(uiState: NotesUiState, viewModel: NotesViewModel) {
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(if (screen == M7Screen.NOTES) "Notes App M7" else "Settings")
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // Network Status Bar
+                if (!isNetworkAvailable) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.WifiOff,
+                                contentDescription = null,
+                                tint = Color(0xFFF44336),
+                                modifier = Modifier.width(16.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                "Tidak Terhubung",
+                                color = Color(0xFFF44336),
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
                 }
-            )
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(if (screen == M7Screen.NOTES) "Notes App M7" else "Settings")
+                    }
+                )
+            }
         },
         snackbarHost = { SnackbarHost(snackbars) },
         floatingActionButton = {
@@ -329,28 +367,95 @@ private fun SettingsContent(
     onSortOrderChange: (SortOrder) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    val deviceInfo: DeviceInfo = koinInject()
+    val networkMonitor: NetworkMonitor = koinInject()
+    val isNetworkAvailable by networkMonitor.isNetworkAvailable.collectAsState()
+
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.DarkMode, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Mode Gelap")
+        item {
+            // Network Status
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isNetworkAvailable) 
+                        Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = if (isNetworkAvailable) Icons.Default.Wifi else Icons.Default.WifiOff,
+                            contentDescription = null,
+                            tint = if (isNetworkAvailable) Color(0xFF4CAF50) else Color(0xFFF44336)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Column {
+                            Text("Status Jaringan", style = MaterialTheme.typography.labelSmall)
+                            Text(
+                                if (isNetworkAvailable) "Terhubung" else "Tidak Terhubung",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
             }
-            Switch(checked = darkMode, onCheckedChange = onDarkModeChange)
         }
 
-        Text("Urutan Catatan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        item {
+            // Device Info
+            Text("Informasi Device", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        }
+        
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DeviceInfoRow("Manufacturer", deviceInfo.manufacturer)
+                    DeviceInfoRow("Model", deviceInfo.model)
+                    DeviceInfoRow("Device", deviceInfo.deviceName)
+                    DeviceInfoRow("OS", deviceInfo.osVersion)
+                    DeviceInfoRow("App Version", deviceInfo.appVersion)
+                }
+            }
+        }
 
-        SortOrder.entries.forEach { option ->
+        item {
+            // Dark Mode Settings
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.DarkMode, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Mode Gelap")
+                }
+                Switch(checked = darkMode, onCheckedChange = onDarkModeChange)
+            }
+        }
+
+        item {
+            // Sort Order Settings
+            Text("Urutan Catatan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        }
+
+        items(SortOrder.entries.size) { index ->
+            val option = SortOrder.entries[index]
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -359,6 +464,14 @@ private fun SettingsContent(
                 Text(text = option.label())
             }
         }
+    }
+}
+
+@Composable
+private fun DeviceInfoRow(label: String, value: String) {
+    Column {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
     }
 }
 

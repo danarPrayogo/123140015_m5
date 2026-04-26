@@ -26,6 +26,8 @@ kotlin {
             implementation(libs.sqldelight.android.driver)
             implementation(libs.sqldelight.coroutines)
             implementation(libs.androidx.datastore.preferences)
+            implementation(libs.koin.android)
+            implementation(libs.koin.androidx.compose)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -44,6 +46,7 @@ kotlin {
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor)
+            implementation(libs.koin.core)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
