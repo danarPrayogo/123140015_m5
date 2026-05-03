@@ -77,8 +77,18 @@ Catatan: aplikasi saat ini menggunakan model `gemini-2.5-flash` karena model ter
 
 
 ## Bukti Demo
-<img width="362" height="800" alt="WhatsApp Image 2026-05-03 at 22 35 11 (1)" src="https://github.com/user-attachments/assets/51b3713f-91a9-4a59-b7fb-fa355bfebb75" />
-<img width="362" height="800" alt="WhatsApp Image 2026-05-03 at 22 35 12" src="https://github.com/user-attachments/assets/a346e27d-7836-4bb5-853e-6ff2a3983690" />
-<img width="362" height="800" alt="WhatsApp Image 2026-05-03 at 22 35 11" src="https://github.com/user-attachments/assets/92f4009f-ad62-424f-80c8-5d85ce47a4e6" />
 
+<table>
+  <tr>
+    <td>
+      <img width="362" height="800" alt="WhatsApp Image 2026-05-03 at 22 35 11 (1)" src="https://github.com/user-attachments/assets/51b3713f-91a9-4a59-b7fb-fa355bfebb75" />
+    </td>
+    <td>
+      <img width="362" height="800" alt="WhatsApp Image 2026-05-03 at 22 35 12" src="https://github.com/user-attachments/assets/a346e27d-7836-4bb5-853e-6ff2a3983690" />
+    </td>
+    <td>
+      <img width="362" height="800" alt="WhatsApp Image 2026-05-03 at 22 35 11" src="https://github.com/user-attachments/assets/92f4009f-ad62-424f-80c8-5d85ce47a4e6" />
+    </td>
+  </tr>
+</table>
 
