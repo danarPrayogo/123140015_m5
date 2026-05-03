@@ -1,13 +1,10 @@
 
-# Tugas Praktikum M8 - Notes App dengan Koin Dependency Injection
+# Tugas Praktikum M9 
 
 ## Informasi
 - Nama: Danar Prayogo
 - NIM: 123140015
 - Branch Pengumpulan: week-9
-
-## Deskripsi Singkat
-Proyek ini adalah upgrade aplikasi Notes M7 yang ditingkatkan dengan Koin Dependency Injection framework untuk mengelola dependencies secara terpusat, DeviceInfo (expect/actual) untuk menampilkan informasi device, NetworkMonitor (expect/actual) untuk memonitor status jaringan secara real-time, dan Gemini API untuk merangkum isi catatan secara otomatis.
 
 ## Fitur Week 9
 1. **AI Content Summarization** menggunakan Gemini API.
@@ -27,7 +24,7 @@ Proyek ini adalah upgrade aplikasi Notes M7 yang ditingkatkan dengan Koin Depend
 5. Toggle favorite pada tiap catatan.
 6. UI states yang proper (loading, empty, content).
 
-### Fitur Baru Week 8
+### Fitur Week 8
 1. **Koin Dependency Injection**: Setup lengkap untuk mengelola semua dependencies
 2. **DeviceInfo (Multiplatform)**: Interface expect/actual untuk menampilkan:
    - Manufacturer (misal: Samsung, Xiaomi)
@@ -43,90 +40,6 @@ Proyek ini adalah upgrade aplikasi Notes M7 yang ditingkatkan dengan Koin Depend
    - Device Info section di Settings screen
    - Status jaringan di card dengan warna indikator
 
-## Teknologi Utama
-- Kotlin Multiplatform + Jetpack Compose (Android)
-- **Koin 3.5.6** (Dependency Injection)
-- SQLDelight 2.0.2
-- AndroidX DataStore Preferences
-- Android ConnectivityManager (Network monitoring)
-- MVVM (ViewModel + Repository)
-
-## Struktur Project
-```
-composeApp/
-├── src/
-│   ├── commonMain/
-│   │   └── kotlin/org/example/project/
-│   │       ├── di/
-│   │       │   └── KoinModule.kt          # Koin dependency definitions
-│   │       ├── device/
-│   │       │   └── DeviceInfo.kt          # DeviceInfo interface (expect)
-│   │       └── network/
-│   │           └── NetworkMonitor.kt      # NetworkMonitor interface (expect)
-│   ├── androidMain/
-│   │   ├── AndroidManifest.xml
-│   │   └── kotlin/org/example/project/
-│   │       ├── device/
-│   │       │   └── DeviceInfo.kt          # Android implementation (actual)
-│   │       ├── network/
-│   │       │   └── NetworkMonitor.kt      # Android implementation (actual)
-│   │       ├── notes/
-│   │       │   ├── NotesViewModel.kt      # ViewModel (managed by Koin)
-│   │       │   ├── NotesRepository.kt
-│   │       │   ├── SettingsRepository.kt
-│   │       │   └── NoteModels.kt
-│   │       ├── App.kt                     # Main UI composables
-│   │       └── MainActivity.kt            # Koin initialization
-│   └── commonMain/sqldelight/
-│       └── org/example/project/db/Notes.sq
-└── build.gradle.kts
-```
-
-## Penjelasan Arsitektur
-
-### Koin Module (di/KoinModule.kt)
-Menyediakan single instances untuk:
-- `DeviceInfo`: Implementasi Android device info
-- `NetworkMonitor`: Monitor jaringan menggunakan ConnectivityManager
-- `NotesDatabase`: SQLDelight database instance
-- `NotesRepository`: Akses database
-- `SettingsRepository`: Akses DataStore preferences
-- `NotesViewModel`: ViewModel untuk UI
-
-### DeviceInfo Interface
-```kotlin
-interface DeviceInfo {
-    val deviceName: String
-    val osVersion: String
-    val manufacturer: String
-    val model: String
-    val appVersion: String
-}
-```
-
-**Android Implementation** (`AndroidDeviceInfo`):
-- Menggunakan `Build` class untuk mendapatkan info hardware
-- Menggunakan `PackageManager` untuk app version
-- Dijalankan pada runtime saat aplikasi dimulai
-
-### NetworkMonitor Interface
-```kotlin
-interface NetworkMonitor {
-    val isNetworkAvailable: StateFlow<Boolean>
-}
-```
-
-**Android Implementation** (`AndroidNetworkMonitor`):
-- Menggunakan `ConnectivityManager` dengan `NetworkCallback`
-- StateFlow untuk observable network status
-- Callback otomatis update saat network berubah (connect/disconnect)
-
-### UI Integration
-- **MainActivity.kt**: Inisialisasi Koin sebelum UI rendering
-- **App.kt**: Menggunakan `koinViewModel()` dan `koinInject()` untuk dependency injection
-- **NotesContent**: Menerima callbacks dari ViewModel
-- **SettingsContent**: Menampilkan DeviceInfo dan NetworkStatus dengan card UI
-- **M7NotesApp**: Menampilkan network status indicator saat offline
 
 ### Week 9 AI Integration
 - **GeminiService**: Mengirim judul dan isi catatan ke Gemini API untuk menghasilkan ringkasan.
@@ -162,53 +75,10 @@ Jika key belum diisi, fitur ringkasan AI tetap tampil tetapi akan menampilkan pe
 
 Catatan: aplikasi saat ini menggunakan model `gemini-2.5-flash` karena model tersebut mendukung `generateContent` pada API Gemini yang aktif.
 
-## Checklist Pengujian Fitur
-
-### Week 7 Features
-- [x] Create note
-- [x] Read/list notes
-- [x] Update note
-- [x] Delete note
-- [x] Search note
-- [x] Toggle favorite
-- [x] Ubah theme (DataStore)
-- [x] Ubah sort order (DataStore)
-- [x] Offline-first (data tetap lokal)
-- [x] UI state loading/empty/content
-
-### Week 8 Features
-- [x] Koin DI initialization di MainActivity
-- [x] DeviceInfo ditampilkan di Settings
-  - [x] Device Manufacturer
-  - [x] Device Model
-  - [x] Device Name
-  - [x] OS Version
-  - [x] App Version
-- [x] NetworkMonitor tracking real-time
-- [x] Network status indicator di main screen
-- [x] Network status di Settings screen
-- [x] Expect/actual pattern untuk DeviceInfo
-- [x] Expect/actual pattern untuk NetworkMonitor
-- [x] Semua dependencies di-inject via Koin
-
-### Week 9 Features
-- [x] Integrasi Gemini API untuk ringkasan catatan
-- [x] Loading state saat proses AI berjalan
-- [x] Error handling saat key belum ada atau request gagal
-- [x] System prompt untuk mengarahkan output ringkasan
-- [x] Model Gemini yang kompatibel untuk `generateContent`
 
 ## Bukti Demo
-Silakan isi bagian berikut saat mengumpulkan tugas:
+<img width="723" height="1600" alt="WhatsApp Image 2026-05-03 at 22 35 11 (1)" src="https://github.com/user-attachments/assets/51b3713f-91a9-4a59-b7fb-fa355bfebb75" />
+<img width="723" height="1600" alt="WhatsApp Image 2026-05-03 at 22 35 12" src="https://github.com/user-attachments/assets/a346e27d-7836-4bb5-853e-6ff2a3983690" />
+<img width="723" height="1600" alt="WhatsApp Image 2026-05-03 at 22 35 11" src="https://github.com/user-attachments/assets/92f4009f-ad62-424f-80c8-5d85ce47a4e6" />
 
-- Screenshot Settings screen yang menampilkan Device Info dan Network Status.
-- Screenshot main screen saat offline yang menampilkan network indicator.
-- Screenshot fitur AI summarization saat ringkasan Gemini tampil.
-- Link video demo 45 detik.
 
-Isi video demo:
-- Tampilkan Device Info di Settings.
-- Test Network Monitor dengan menyalakan dan mematikan WiFi.
-- Lakukan CRUD notes.
-- Tampilkan fitur search dan settings.
-- Tampilkan ringkasan AI pada salah satu catatan.
